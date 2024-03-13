@@ -2,11 +2,11 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import time
 from PyQt5 import uic
+
 from qgis.core import *
+
 from qgis.gui import *
-from qgis.utils import *
 import sys, os
 
 # sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/forms")
@@ -21,161 +21,183 @@ class MainDialog(QDialog, form_action1):
         QWidget.__init__(self)
         self.setupUi(self)
 
+        self.sb_buffer.setValue(0)
+        self.buffer = []
+        self.crs_projected = QgsCoordinateReferenceSystem('EPSG:2154')
+
         self.cb_choixLayerInterscet.currentIndexChanged.connect(self.RecupererCoucheDansProjets)
         self.RemplirComboBox()
+        self.cb_enti_selection.stateChanged.connect(self.EntiteSelectionner)
+        self.sb_buffer.valueChanged.connect(self.CreationBuffer)
+        self.pb_ok.clicked.connect(self.TestExport)
 
-        # self.CB_enti_selection.isChecked.connect(self.EntiteSelectionner)
-        # self.RemplirComboBox()
-
-        #gestion des clics
-        self.pb_aide.clicked.connect(self.ouvrirAide)
-        self.pb_choixscr.clicked.connect(self.choixScr)
-        self.pb_folderFinder.clicked.connect(self.saveFolder)
-        self.le_exitPath.textChanged.connect(self.pathFolder)
-        self.cb_choixscr.setCurrentIndex(-1) #on s'assure qu'on affiche une valeur blank par défaut sur la cb box
-
-        #Sur Pyqt, il est obligatoire de renseigner un signal à un slot uniquement, d'où la redondance des lignes suivantes
-        self.pb_ok.clicked.connect(self.exportSelectionVecto)#click sur OK = lancement des exports avec les formats cochés au répertoire souhaité
-        self.pb_ok.clicked.connect(self.exportSelectionFields)
-
-        #gestion des entrées utilisateur pour la combo box des SCR
-        self.cb_choixscr.currentTextChanged.connect(self.choixScrCb)
-
-        #récupère l'instance du projet courant
-        project = QgsProject.instance()
-
-        #récupère le système de référence spatiale (CRS) du projet
-        crs = project.crs()
-
-        #transforme le code EPSG du CRS sous forme de chaîne de caractères
-        epsg_code = crs.authid()
-
-        #Met à jour le texte du QLabel avec le code EPSG
-        self.label_scr.setText(epsg_code)
-
-
-    #Fonction pour sauvegarder lors du click boutons le repertoire
-    def saveFolder(self):
-        self.Folder = QFileDialog.getExistingDirectory(self)
-        self.Folder = self.Folder + "/"
-        self.le_exitPath.setText(self.Folder)
-
-    #fonction pour enregistrer lors de l'écriture dans le QlineEdit
-    def pathFolder(self):
-        self.Folder = self.le_exitPath.text()
-        self.Folder = self.Folder.replace('\\', '/')
-        self.Folder = self.Folder + '/' #sinon on se retrouve dans le dossier du dessus
-        #print(self.Folder)
-
-    #A faire : réussir à désigner spécifiquement l'attributaire
-    def exportSelectionFields(self):
-        layer = iface.mapCanvas().currentLayer()  # désigne la couche que tu veux du coup
-        if self.cb_xls.isChecked():
-            error, message = QgsVectorFileWriter.writeAsVectorFormat(layer, self.Folder, 'XLS')
-            if error == QgsVectorFileWriter.NoError:
-                print("L'exportation a réussi.")
-            else:
-                print(f"Erreur d'exportation : {message}")
-
-        if self.cb_csv.isChecked():
-            layer = iface.mapCanvas().currentLayer()  # désigne la couche que tu veux du coup
-            error, message = QgsVectorFileWriter.writeAsVectorFormat(layer, self.Folder, 'UTF-8',driverName='CSV')
-            if error == QgsVectorFileWriter.NoError:
-                print("L'exportation a réussi.")
-            else:
-                print(f"Erreur d'exportation : {message}")
-
-        if self.cb_ods.isChecked():
-            layer = iface.mapCanvas().currentLayer()  # désigne la couche que tu veux du coup
-            error, message = QgsVectorFileWriter.writeAsVectorFormat(layer, self.Folder, 'UTF-8',driverName='ODS')
-            if error == QgsVectorFileWriter.NoError:
-                print("L'exportation a réussi.")
-            else:
-                print(f"Erreur d'exportation : {message}")
-        return
-
-    #A faire : réussir à désigner spécifiquement le vecto souhaité
-    def exportSelectionVecto(self):
-        layer = iface.mapCanvas().currentLayer()  # désigne la couche que tu veux du coup
-        print(self.Folder)
-        if self.cb_shp.isChecked():
-            error, message = QgsVectorFileWriter.writeAsVectorFormat(layer, self.Folder, 'UTF-8',driverName='ESRI Shapefile')
-            if error == QgsVectorFileWriter.NoError:
-                print("L'exportation a réussi.")
-            else:
-                print(f"Erreur d'exportation : {message}")
-
-        if self.cb_geopackage.isChecked():
-            error, message = QgsVectorFileWriter.writeAsVectorFormat(layer, self.Folder, 'UTF-8',driverName='GPKG')
-            if error == QgsVectorFileWriter.NoError:
-                print("L'exportation a réussi.")
-            else:
-                print(f"Erreur d'exportation : {message}")
-
-        if self.cb_geoJson.isChecked():
-            error, message = QgsVectorFileWriter.writeAsVectorFormat(layer, self.Folder, 'UTF-8',driverName='GeoJSON')
-            if error == QgsVectorFileWriter.NoError:
-                print("L'exportation a réussi.")
-            else:
-                print(f"Erreur d'exportation : {message}")
-
-    def choixScrCb(self):
-        #affichage de la sélection
-        selected_scr_cbox = self.cb_choixscr.currentText()
-        self.label_scr.setText(selected_scr_cbox)
-
-        #récupération de l'epsg pour l'utiliser lors de l'export
-        #print(type(selected_scr_cbox))
-        split = selected_scr_cbox.split(" ") #renvoie une liste
-
-        #print(split, "Je suis le split")
-        self.epsg_code = split[0] #récupération de l'EPSG
-        print(self.epsg_code)
-
-    def choixScr(self):
-        dialog = QgsProjectionSelectionDialog()
-        dialog.exec_()
-
-        if dialog.exec_():
-            UsersScr = dialog.crs().authid()
-            crsDescription = dialog.crs().description()
-            #print(type(UsersScr), " test 1")
-            #print(type(crsDescription), " test 2")
-            concatenate = UsersScr + " " + crsDescription
-
-            print(concatenate)
-            #met a jour le label en fonction du choix si utilisation de "autre" scr
-            self.label_scr.setText(concatenate)
-
-            index = self.cb_choixscr.findText(concatenate)#on cherche l'index où le texte du scr choisis se situe, si n'existe pas renvoie -1
-
-            if index == -1:
-                #On ajoute dans la première ligne de notre cbbox le SCR sélectionné pour visualisation / compréhension
-                self.cb_choixscr.insertItem(0, concatenate)
-                self.cb_choixscr.setCurrentIndex(0)  #On se positionne sur l'item
-
-            else:
-                self.cb_choixscr.setCurrentIndex(index)
-
-    def ouvrirAide(self):
-        localHelp = (os.path.dirname(__file__) + "/help/user_manual.pdf")
-        localHelp = localHelp.replace("\\", "/")
-
-        QDesktopServices.openUrl(QUrl(localHelp))
 
     def RemplirComboBox(self):
         # Récupérer toutes les couches du projet actif
         layers = QgsProject.instance().mapLayers().values()
-
         # Créer une liste des noms de couches
-        layer_names = [layer.name() for layer in layers]
-
+        layer_names = []
+        for layer in layers:
+            layer_names.append(layer.name())
         # Ajouter les noms des couches à la ComboBox
         self.cb_choixLayerInterscet.addItems(layer_names)
 
-    def RecupererCoucheDansProjets(self, index):
+    def RecupererCoucheDansProjets(self):
+        index = self.cb_choixLayerInterscet.currentIndex()
         self.selected_layer_name = self.cb_choixLayerInterscet.itemText(index)
-        return self.selected_layer_name
 
-    def EntiteSelectionner(self, selected_layer_name):
-        selected_features = layer.getFeatures(QgsFeatureRequest().setFilterFids(layer.selectedFeatureIds()))
+        self.selectedLayer = QgsProject.instance().mapLayersByName(self.selected_layer_name)[0]
+
+        copied_features = []
+        for feature in self.selectedLayer.getFeatures():
+            # Copier l'entité
+            copied_feature = QgsFeature()
+            copied_feature.setGeometry(feature.geometry())
+
+            # Ajouter l'entité copiée à la liste
+            copied_features.append(copied_feature)
+
+        self.selected_features = copied_features
+
+
+    def EntiteSelectionner(self):
+
+        if self.cb_enti_selection.isChecked():
+            request = QgsFeatureRequest().setFilterFids(self.selectedLayer.selectedFeatureIds())
+
+            # Récupérer les entités sélectionnées dans la couche
+            copied_features = []
+            for feature in self.selectedLayer.getFeatures(request):
+                # Copier l'entité
+                copied_feature = QgsFeature()
+                copied_feature.setGeometry(feature.geometry())
+
+                # Ajouter l'entité copiée à la liste
+                copied_features.append(copied_feature)
+
+            self.selected_features = copied_features
+            self.label_nbentite.setText(str(len(copied_features)))
+            if self.sb_buffer.value() != 0:
+                self.CreationBuffer()
+
+        else :
+            self.label_nbentite.setText("Néant")
+            if self.sb_buffer.value() != 0:
+                self.CreationBuffer()
+
+    def TransformScr(self, selectedLayer, crs_projected):
+        """
+        Fonction pour transformer les entités d'une couche dans un SCR projeté.
+
+        Args:
+            selectedLayer (QgsVectorLayer): La couche dont les entités doivent être transformées.
+            crs_projected (QgsCoordinateReferenceSystem): Le système de référence de coordonnées projeté.
+        """
+
+        # Créer une transformation de coordonnées
+        transformContext = QgsProject.instance().transformContext()
+        coord_transformation = QgsCoordinateTransform(selectedLayer.crs(), crs_projected, transformContext)
+
+        # Transformer les entités sélectionnées en SCR projeté
+        transformed_features = []
+        for feature in selectedLayer.getFeatures():
+            try:
+                copied_feature = QgsFeature()
+
+                # Obtenir la géométrie de l'entité
+                geometry = feature.geometry()
+
+                # Transformer la géométrie en utilisant la transformation
+                geometry.transform(coord_transformation)
+
+                # Définir la géométrie de l'entité avec la géométrie transformée
+                copied_feature.setGeometry(geometry)
+
+                # Ajouter l'entité transformée à la liste
+                transformed_features.append(copied_feature)
+            except Exception as e:
+                # Afficher une fenêtre d'alerte avec l'ID de la feature et le message d'erreur
+                message = "Erreur lors de la transformation de l'entité %i : %s" % (feature.id(), str(e))
+                self.show_alert_dialog(message)
+
+        # Remplacer les entités sélectionnées par les entités transformées
+        self.selected_features = transformed_features
+
+        # Vérifier si toutes les entités transformées ont une géométrie
+        for feature in transformed_features:
+            if not feature.hasGeometry():
+                # Afficher un message d'alerte avec l'ID de la feature
+                message = "Aucune géométrie pour l'entité %i après la transformation. Veuillez vérifier le système de référence de coordonnées projeté." % (feature.id())
+                self.show_alert_dialog(message)
+                # Arrêter la boucle
+                break
+        if self.selected_features is None:
+            print("coucou")
+        # Si toutes les entités ont une géométrie, continuer le traitement
+
+    def CreationBuffer(self):
+        if self.sb_buffer.value() != 0:
+            print("coucou")
+            if self.selectedLayer.crs().isGeographic():
+                # Transformer les entités sélectionnées en SCR projeté
+                self.selected_features = self.TransformScr(self.selectedLayer, self.crs_projected)
+            else:
+                if self.cb_enti_selection.isChecked():
+                    self.EntiteSelectionner
+                else:
+                    self.selected_features = self.selectedLayer.getFeatures()
+
+            # Créer une liste qui contiendras les buffers
+            buffered_features = []
+            #créer les paramètres du Buffer
+            rayon = self.sb_buffer.value()  # La distance du buffer
+            nombre_segment = 5 #valeur par défaut Qgis - le nombre de segments permet de définir un quart de cercle approximatif
+            # style_terminaison = 1 #le style de terminaison est un entier associé aux valeurs suivantes : 1 : arrondi (round) 2 : plat (flat) 3 : carré (square)
+            # style_jointure = 1 #le style de jointure est un entier associé aux valeurs suivantes : 1 : arrondi (round) 2 : saillant (mitre) 3 : biseauté (bevel)
+            # print(f"rayon: {rayon}, nombre_segment: {nombre_segment}, style_terminaison: {style_terminaison}, style_jointure: {style_jointure}")
+
+            for feature in self.selected_features:
+                copied_feature = QgsFeature()
+                buffered_geometry = feature.geometry().buffer(rayon, nombre_segment)  # Création du buffer
+                # buffered_geometry = feature.geometry().buffer(rayon, nombre_segment, style_terminaison,style_jointure)  # Création du buffer
+                copied_feature.setGeometry(buffered_geometry)
+                buffered_features.append(copied_feature)  # Ajout du buffer à la liste buffered_features
+
+            # Notre buffer devient sur ce qu'on doit travaillé
+            self.buffer = buffered_features
+        else:
+            if self.cb_enti_selection.isChecked():
+                self.EntiteSelectionner()
+            else:
+                self.RecupererCoucheDansProjets()
+
+    def show_alert_dialog(self, message):
+        # Créer une boîte de message Qt
+        msg_box = QMessageBox()
+        msg_box.setIcon(QMessageBox.Critical)
+        msg_box.setText(message)
+        msg_box.exec_()
+
+    def TestExport(self):
+        # Create a temporary layer with polygon geometry
+        crs = self.selectedLayer.crs()  # Get the CRS object
+        epsg_code = crs.authid()  # Use .authid() to get EPSG code
+        temp_layer = QgsVectorLayer("Polygon?crs=" + str(epsg_code), str(self.selected_layer_name) + "copie", "memory")
+        print(epsg_code)
+        # temp_layer.setCrs(QgsCoordinateReferenceSystem(str(epsg_code)))
+
+
+        # Add the layer to the map
+        QgsProject.instance().addMapLayer(temp_layer)
+
+        # # Check if features have valid geometry
+        # for feature in self.selected_features:
+        #     if not feature.hasGeometry():
+        #         print("Feature {} has no geometry!".format(feature.id()))
+        #         continue
+
+        # Add features to the layer
+        if self.sb_buffer.value() == 0 :
+            temp_layer.dataProvider().addFeatures(self.selected_features)
+        else :
+            temp_layer.dataProvider().addFeatures(self.buffer)
