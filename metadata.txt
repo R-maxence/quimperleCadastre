@@ -10,12 +10,12 @@
 name=Quimperlé Cadastre Extractor
 qgisMinimumVersion=2.6
 qgisMaximumVersion=3.99
-description=Ce Plugin permet d'extraire des données attributaire et vectorielle du modèle cadastrale de 3liz pour un objectif de publipostage.
+description=Ce plugin permet d'extraire des données cadastral attributaire re-structuré ainsi que la géométrie de sparcelles concerné. Ne fonctionne qu'avec des données suivant le format cadastre de 3liz
 version=0.1
-author=al
-email=al@gmail.com
+author=Giraud Victor Roussel Maxence 
+email=giraud.victor.17@gmail.com
 
-about=ebauche
+about=Version 0.1 du plugin Quimperlé Cadastre Extractor. Ce plugin permet, à condition d'avoir des données structuré suivant la BD cadastre de 3liz, d'exporter des données vectorielle et attributaire re-formaté des données Majic et Edigeo. Ce plugin se connect à vos différentes connexion Spatialite et Postgis existante dans Qgis, Il vous permet d'exporter les données vectorielles en .shp / .gpkg / .geojson, et les donnée attributaire en .csv /.xls.
 
 tracker=github.com
 repository=github.com

@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 def classFactory(iface):
-    from .quimperleCadastre import QuimperleCadastrePlugin
+    from .QuimperleCadastrePlugin import QuimperleCadastrePlugin
     return QuimperleCadastrePlugin(iface)
